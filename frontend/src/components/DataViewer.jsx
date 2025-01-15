@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Table, RefreshCw, Search } from 'lucide-react';
 import UpdateModal from './UpdateModal';
 
-const API_URL = 'http://192.168.150.107:5000';
+const api = axios.create({
+    baseURL: 'http://localhost:5000',
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
 
-function DataViewer() {
+const DataViewer = () => {
     const [donnees, setDonnees] = useState([]);
+    const [enqueteurs, setEnqueteurs] = useState([]);
     const [filteredDonnees, setFilteredDonnees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -18,36 +26,61 @@ function DataViewer() {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`${API_URL}/api/donnees`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Charger les données
+            const dataResponse = await api.get('/api/donnees');
+            if (dataResponse.data.success && Array.isArray(dataResponse.data.data)) {
+                setDonnees(dataResponse.data.data);
+                setFilteredDonnees(dataResponse.data.data);
+            } else {
+                throw new Error('Format de données invalide');
             }
 
-            const data = await response.json();
-            setDonnees(data);
-            setFilteredDonnees(data);
-        } catch (err) {
-            console.error('Error fetching data:', err);
-            setError(err.message);
-        } finally {
+            // Charger les enquêteurs
+            const enqueteursResponse = await api.get('/api/enqueteurs');
+            if (enqueteursResponse.data.success && Array.isArray(enqueteursResponse.data.data)) {
+                setEnqueteurs(enqueteursResponse.data.data);
+            }
+
+            setLoading(false);
+        } catch (error) {
+            console.error('Erreur lors du chargement des données:', error);
+            setError('Erreur lors du chargement des données: ' + (error.response?.data?.error || error.message));
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const getEnqueteurName = (enqueteurId) => {
+        if (!enqueteurId) return 'Non assigné';
+        const enqueteur = enqueteurs.find(e => e.id === enqueteurId);
+        return enqueteur ? `${enqueteur.nom} ${enqueteur.prenom}` : 'Non trouvé';
+    };
+
+    const handleSearch = (value) => {
+        setSearchTerm(value);
+        if (!value.trim()) {
+            setFilteredDonnees(donnees);
+            return;
+        }
+
+        const searchTermLower = value.toLowerCase();
+        const filtered = donnees.filter(donnee =>
+            donnee.numeroDossier?.toLowerCase().includes(searchTermLower) ||
+            donnee.nom?.toLowerCase().includes(searchTermLower) ||
+            donnee.prenom?.toLowerCase().includes(searchTermLower) ||
+            donnee.ville?.toLowerCase().includes(searchTermLower)
+        );
+        setFilteredDonnees(filtered);
     };
 
     const handleDelete = async (id) => {
         if (window.confirm('Voulez-vous vraiment supprimer cet enregistrement ?')) {
             try {
-                const response = await fetch(`${API_URL}/api/donnees/${id}`, {
-                    method: 'DELETE',
-                });
-
-                if (response.ok) {
+                const response = await api.delete(`/api/donnees/${id}`);
+                if (response.data.success) {
                     const updatedDonnees = donnees.filter((donnee) => donnee.id !== id);
                     setDonnees(updatedDonnees);
                     setFilteredDonnees(updatedDonnees);
@@ -78,27 +111,6 @@ function DataViewer() {
     const handleHistory = (id) => {
         console.log('Historique pour ID:', id);
         // Implémentez la logique d'historique ici
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const handleSearch = (value) => {
-        setSearchTerm(value);
-        if (!value.trim()) {
-            setFilteredDonnees(donnees);
-            return;
-        }
-
-        const searchTermLower = value.toLowerCase();
-        const filtered = donnees.filter(donnee =>
-            donnee.numeroDossier?.toLowerCase().includes(searchTermLower) ||
-            donnee.nom?.toLowerCase().includes(searchTermLower) ||
-            donnee.prenom?.toLowerCase().includes(searchTermLower) ||
-            donnee.ville?.toLowerCase().includes(searchTermLower)
-        );
-        setFilteredDonnees(filtered);
     };
 
     if (loading) {
@@ -154,10 +166,10 @@ function DataViewer() {
                                 Actions
                             </th>
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                enqueteur
+                                Enquêteur
                             </th>
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                envoie
+                                Date d'envoi
                             </th>
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 N° Dossier
@@ -190,6 +202,9 @@ function DataViewer() {
                                 Contestation
                             </th>
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Deces
+                            </th>
+                            <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Date butoir
                             </th>
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -220,7 +235,7 @@ function DataViewer() {
                                         Histo
                                     </button>
                                 </td>
-                                <td className="px-2 py-2 text-xs">{/* Cellule enqueteur */}</td>
+                                <td className="px-2 py-2 text-xs">{getEnqueteurName(donnee.enqueteurId)}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.dateRetourEspere}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.numeroDossier}</td>
                                 <td className="px-2 py-2 text-xs">
@@ -234,6 +249,7 @@ function DataViewer() {
                                 <td className="px-2 py-2 text-xs">{donnee.codePostal}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.numeroDemande}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.numeroDemandeContestee}</td>
+                                <td className="px-2 py-2 text-xs">{donnee.dateDeces}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.dateRetourEspere}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.ville}</td>
                             </tr>
@@ -257,6 +273,6 @@ function DataViewer() {
             )}
         </div>
     );
-}
+};
 
 export default DataViewer;
