@@ -18,7 +18,7 @@ def reset_db():
         # Create new tables
         db.create_all()
         
-        print("Base de données réinitialisée avec succès!")
+        print("Database reset successfully!")
 
 if __name__ == "__main__":
     reset_db()

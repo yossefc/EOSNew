@@ -1,20 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Upload } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useState, useEffect } from "react";
+import { Shield, Upload } from "lucide-react";
+import config from '../config';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = config.API_URL;
 
 const VPNTemplateManager = () => {
-    const [hasTemplate, setHasTemplate] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [file, setFile] = useState(null);
     const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-    const checkTemplate = async () => {
-        try {
-            const response = await fetch(`${API_URL}/api/vpn-template`);
-            const data = await response.json();
-            setHasTemplate(data.exists);
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            setFile(selectedFile);
             setError(null);
+        }
+    };
+
+    const handleUpload = async (e) => {
+        e.preventDefault();
+        if (!file) {
+            setError("Veuillez sélectionner un fichier");
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        const formData = new FormData();
+        formData.append("template", file);
+
+        try {
+            const response = await fetch(`${API_URL}/api/vpn/template`, {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setSuccess("Template VPN mis à jour avec succès");
+                setFile(null);
+                // Reset file input
+                e.target.reset();
+            } else {
+                throw new Error(data.error || "Erreur lors de l'upload du template");
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -22,92 +55,55 @@ const VPNTemplateManager = () => {
         }
     };
 
-    const handleTemplateUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch(`${API_URL}/api/vpn-template`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Erreur lors de l\'upload du template');
-            }
-
-            await checkTemplate();
-            alert('Template VPN uploadé avec succès');
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            e.target.value = ''; // Reset input file
-        }
-    };
-
-    useEffect(() => {
-        checkTemplate();
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center p-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-        );
-    }
-
     return (
-        <div className="bg-white border rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-                <Shield className="w-5 h-5 text-blue-500" />
-                <h3 className="font-medium">Configuration VPN</h3>
+        <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-6">
+                <Shield className="w-6 h-6 text-blue-500" />
+                <h2 className="text-xl font-bold">Template VPN</h2>
             </div>
 
             {error && (
-                <Alert variant="destructive" className="mb-4">
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+                    {error}
+                </div>
             )}
 
-            <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                    <div className={`w-3 h-3 rounded-full ${hasTemplate ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span>
-                        {hasTemplate ? 'Template VPN configuré' : 'Template VPN non configuré'}
-                    </span>
+            {success && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded">
+                    {success}
                 </div>
+            )}
 
+            <form onSubmit={handleUpload} className="space-y-4">
                 <div>
-                    <label className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Upload className="w-4 h-4" />
-                            {hasTemplate ? 'Modifier le template' : 'Uploader le template VPN'}
-                        </div>
-                        <input
-                            type="file"
-                            accept=".ovpn"
-                            onChange={handleTemplateUpload}
-                            className="block w-full text-sm text-gray-500
-                                file:mr-4 file:py-2 file:px-4
-                                file:rounded-md file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100"
-                        />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Fichier template OpenVPN (.ovpn)
                     </label>
+                    <input
+                        type="file"
+                        accept=".ovpn"
+                        onChange={handleFileChange}
+                        className="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100"
+                        required
+                    />
                 </div>
 
-                {hasTemplate && (
-                    <div className="text-sm text-gray-500">
-                        Le template sera utilisé pour générer les configurations VPN des enquêteurs.
-                    </div>
-                )}
-            </div>
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className={`flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 ${
+                        loading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                >
+                    <Upload className="w-4 h-4" />
+                    {loading ? "Upload en cours..." : "Upload Template"}
+                </button>
+            </form>
         </div>
     );
 };

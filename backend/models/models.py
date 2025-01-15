@@ -22,9 +22,12 @@ class Donnee(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     fichier_id = db.Column(db.Integer, db.ForeignKey('fichiers.id'), nullable=False)
+    enqueteurId = db.Column(db.Integer, db.ForeignKey('enqueteurs.id'), nullable=True)
     
     # Relation avec DonneeEnqueteur
     donnee_enqueteur = db.relationship('DonneeEnqueteur', backref='donnee', lazy=True, uselist=False, cascade='all, delete-orphan')
+    # Relation avec Enqueteur
+    enqueteur = db.relationship('Enqueteur', backref='enquetes', lazy=True)
     
     # Données transmises par EOS FRANCE
     numeroDossier = db.Column(db.String(10))
@@ -83,6 +86,7 @@ class Donnee(db.Model):
         return {
             'id': self.id,
             'fichier_id': self.fichier_id,
+            'enqueteurId': self.enqueteurId,
             'numeroDossier': self.numeroDossier,
             'referenceDossier': self.referenceDossier,
             'numeroInterlocuteur': self.numeroInterlocuteur,

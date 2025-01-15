@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, RefreshCw, Search } from 'lucide-react';
 import UpdateModal from './UpdateModal';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://192.168.150.107:5000';
 
 function DataViewer() {
     const [donnees, setDonnees] = useState([]);
@@ -30,35 +30,14 @@ function DataViewer() {
             }
 
             const data = await response.json();
-            if (data.success) {
-                setDonnees(data.data);
-                setFilteredDonnees(data.data);
-            } else {
-                throw new Error('Format de données invalide');
-            }
+            setDonnees(data);
+            setFilteredDonnees(data);
         } catch (err) {
             console.error('Error fetching data:', err);
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleSearch = (value) => {
-        setSearchTerm(value);
-        if (!value.trim()) {
-            setFilteredDonnees(donnees);
-            return;
-        }
-
-        const searchTermLower = value.toLowerCase();
-        const filtered = donnees.filter(donnee =>
-            donnee.numeroDossier?.toLowerCase().includes(searchTermLower) ||
-            donnee.nom?.toLowerCase().includes(searchTermLower) ||
-            donnee.prenom?.toLowerCase().includes(searchTermLower) ||
-            donnee.ville?.toLowerCase().includes(searchTermLower)
-        );
-        setFilteredDonnees(filtered);
     };
 
     const handleDelete = async (id) => {
@@ -104,6 +83,23 @@ function DataViewer() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const handleSearch = (value) => {
+        setSearchTerm(value);
+        if (!value.trim()) {
+            setFilteredDonnees(donnees);
+            return;
+        }
+
+        const searchTermLower = value.toLowerCase();
+        const filtered = donnees.filter(donnee =>
+            donnee.numeroDossier?.toLowerCase().includes(searchTermLower) ||
+            donnee.nom?.toLowerCase().includes(searchTermLower) ||
+            donnee.prenom?.toLowerCase().includes(searchTermLower) ||
+            donnee.ville?.toLowerCase().includes(searchTermLower)
+        );
+        setFilteredDonnees(filtered);
+    };
 
     if (loading) {
         return (
@@ -157,7 +153,6 @@ function DataViewer() {
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Actions
                             </th>
-                            {/* Autres en-têtes de colonnes */}
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 enqueteur
                             </th>
@@ -193,9 +188,6 @@ function DataViewer() {
                             </th>
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Contestation
-                            </th>
-                            <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Deces
                             </th>
                             <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Date butoir
@@ -242,7 +234,6 @@ function DataViewer() {
                                 <td className="px-2 py-2 text-xs">{donnee.codePostal}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.numeroDemande}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.numeroDemandeContestee}</td>
-                                <td className="px-2 py-2 text-xs">{donnee.dateDeces}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.dateRetourEspere}</td>
                                 <td className="px-2 py-2 text-xs">{donnee.ville}</td>
                             </tr>

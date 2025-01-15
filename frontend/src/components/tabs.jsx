@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { BarChart2, FileText, Database, Users } from 'lucide-react';
+import { BarChart2, FileText, Database, Users, ClipboardList } from 'lucide-react';
 import StatsViewer from './StatsViewer';
 import FileViewer from './FileViewer';
 import DataViewer from './DataViewer';
 import EnqueteurViewer from './EnqueteurViewer';
+import AssignmentViewer from './AssignmentViewer';
 
 const Tabs = () => {
     const [activeTab, setActiveTab] = useState('stats');
@@ -32,6 +33,12 @@ const Tabs = () => {
             label: 'Enquêteurs',
             icon: <Users className="w-4 h-4" />,
             component: <EnqueteurViewer />
+        },
+        {
+            id: 'assignments',
+            label: 'Assignations',
+            icon: <ClipboardList className="w-4 h-4" />,
+            component: <AssignmentViewer />
         }
     ];
 
